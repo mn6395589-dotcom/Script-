@@ -1,0 +1,474 @@
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+-- Key System
+local VALID_KEY = "DEV_MINH 2005 MVP"
+local isVerified = false
+
+-- Tạo GUI
+local gui = Instance.new("ScreenGui")
+gui.Parent = game.CoreGui
+gui.Name = "Garden2Hub"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- ============================================
+-- KEY FRAME
+-- ============================================
+local keyFrame = Instance.new("Frame")
+keyFrame.Parent = gui
+keyFrame.Size = UDim2.new(0, 280, 0, 170)
+keyFrame.Position = UDim2.new(0.5, -140, 0.5, -85)
+keyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+keyFrame.BorderSizePixel = 0
+keyFrame.Active = true
+keyFrame.Draggable = true
+
+local keyStroke = Instance.new("UIStroke")
+keyStroke.Parent = keyFrame
+keyStroke.Color = Color3.fromRGB(0, 200, 255)
+keyStroke.Thickness = 2
+
+local keyTitle = Instance.new("TextLabel")
+keyTitle.Parent = keyFrame
+keyTitle.Size = UDim2.new(1, 0, 0, 30)
+keyTitle.BackgroundColor3 = Color3.fromRGB(0, 160, 255)
+keyTitle.BorderSizePixel = 0
+keyTitle.Text = "🔐 KEY VERIFICATION"
+keyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyTitle.Font = Enum.Font.SourceSansBold
+keyTitle.TextSize = 14
+
+local keyInput = Instance.new("TextBox")
+keyInput.Parent = keyFrame
+keyInput.Size = UDim2.new(1, -40, 0, 32)
+keyInput.Position = UDim2.new(0, 20, 0, 42)
+keyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+keyInput.BorderSizePixel = 0
+keyInput.PlaceholderText = "Nhập key..."
+keyInput.Text = ""
+keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyInput.Font = Enum.Font.SourceSans
+keyInput.TextSize = 14
+keyInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+
+local keyButton = Instance.new("TextButton")
+keyButton.Parent = keyFrame
+keyButton.Size = UDim2.new(1, -40, 0, 35)
+keyButton.Position = UDim2.new(0, 20, 0, 82)
+keyButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+keyButton.BorderSizePixel = 0
+keyButton.Text = "✅ XÁC NHẬN KEY"
+keyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyButton.Font = Enum.Font.SourceSansBold
+keyButton.TextSize = 14
+
+local keyStatus = Instance.new("TextLabel")
+keyStatus.Parent = keyFrame
+keyStatus.BackgroundTransparency = 1
+keyStatus.Position = UDim2.new(0, 20, 0, 125)
+keyStatus.Size = UDim2.new(1, -40, 0, 40)
+keyStatus.Text = "Key: DEV_MINH 2005 FREE\nCần key mới? IB Admin"
+keyStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
+keyStatus.Font = Enum.Font.SourceSans
+keyStatus.TextSize = 10
+keyStatus.TextWrapped = true
+
+-- ============================================
+-- MAIN FRAME
+-- ============================================
+local mainFrame = Instance.new("Frame")
+mainFrame.Parent = gui
+mainFrame.Size = UDim2.new(0, 220, 0, 190)
+mainFrame.Position = UDim2.new(0, 10, 0.5, -95)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Parent = mainFrame
+mainStroke.Color = Color3.fromRGB(0, 255, 200)
+mainStroke.Thickness = 2
+
+local titleBar = Instance.new("Frame")
+titleBar.Parent = mainFrame
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(0, 180, 220)
+titleBar.BorderSizePixel = 0
+
+local hubTitle = Instance.new("TextLabel")
+hubTitle.Parent = titleBar
+hubTitle.Size = UDim2.new(0.7, 0, 1, 0)
+hubTitle.Position = UDim2.new(0, 8, 0, 0)
+hubTitle.BackgroundTransparency = 1
+hubTitle.Text = "🌿 GARDEN 2"
+hubTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+hubTitle.Font = Enum.Font.SourceSansBold
+hubTitle.TextSize = 14
+hubTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local minBtn = Instance.new("TextButton")
+minBtn.Parent = titleBar
+minBtn.Size = UDim2.new(0, 22, 0, 22)
+minBtn.Position = UDim2.new(1, -26, 0, 4)
+minBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+minBtn.BorderSizePixel = 0
+minBtn.Text = "—"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Font = Enum.Font.SourceSansBold
+minBtn.TextSize = 12
+
+local content = Instance.new("Frame")
+content.Parent = mainFrame
+content.Size = UDim2.new(1, 0, 1, -30)
+content.Position = UDim2.new(0, 0, 0, 30)
+content.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+content.BorderSizePixel = 0
+
+-- Biến trạng thái
+local farming = false
+local stealing = false
+local selling = false
+local watering = false
+
+-- Hàm tạo toggle
+local function createToggle(text, yPos, callback, color)
+    color = color or Color3.fromRGB(0, 200, 100)
+    
+    local btnFrame = Instance.new("Frame")
+    btnFrame.Parent = content
+    btnFrame.Size = UDim2.new(1, -16, 0, 36)
+    btnFrame.Position = UDim2.new(0, 8, 0, yPos)
+    btnFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    btnFrame.BorderSizePixel = 0
+    
+    local label = Instance.new("TextLabel")
+    label.Parent = btnFrame
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local btn = Instance.new("TextButton")
+    btn.Parent = btnFrame
+    btn.Size = UDim2.new(0, 44, 0, 22)
+    btn.Position = UDim2.new(1, -50, 0.5, -11)
+    btn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+    btn.BorderSizePixel = 0
+    btn.Text = "OFF"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.AutoButtonColor = false
+    
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        btn.BackgroundColor3 = enabled and color or Color3.fromRGB(55, 55, 65)
+        btn.Text = enabled and "ON" or "OFF"
+        callback(enabled)
+    end)
+end
+
+createToggle("🌾 AUTO FARM", 5, function(on) farming = on end)
+createToggle("🥷 AUTO STEAL", 45, function(on) stealing = on end, Color3.fromRGB(255, 80, 80))
+createToggle("💧 AUTO WATER", 85, function(on) watering = on end, Color3.fromRGB(0, 150, 255))
+createToggle("💰 AUTO SELL", 125, function(on) selling = on end, Color3.fromRGB(255, 200, 0))
+
+local isMinimized = false
+minBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    content.Visible = not isMinimized
+    mainFrame.Size = isMinimized and UDim2.new(0, 220, 0, 30) or UDim2.new(0, 220, 0, 190)
+end)
+
+-- ============================================
+-- KEY VERIFICATION
+-- ============================================
+local function verifyKey()
+    if keyInput.Text == VALID_KEY then
+        isVerified = true
+        keyFrame.Visible = false
+        mainFrame.Visible = true
+        
+        local tween = TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 190)})
+        tween:Play()
+        
+        print("✅ Key hop le!")
+    else
+        keyStatus.Text = "❌ Sai key!\nKey: DEV_MINH 2005 FREE"
+        keyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
+        keyInput.Text = ""
+        
+        local orig = keyFrame.Position
+        for i = 1, 4 do
+            keyFrame.Position = orig + UDim2.new(0, 3, 0, 0)
+            task.wait(0.03)
+            keyFrame.Position = orig - UDim2.new(0, 3, 0, 0)
+            task.wait(0.03)
+        end
+        keyFrame.Position = orig
+    end
+end
+
+keyButton.MouseButton1Click:Connect(verifyKey)
+
+-- ============================================
+-- MOBILE FUNCTIONS
+-- ============================================
+
+local function activateObject(obj)
+    local char = Player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
+    
+    local root = char.HumanoidRootPart
+    
+    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt")
+    if prompt then
+        fireproximityprompt(prompt)
+        return true
+    end
+    
+    local cd = obj:FindFirstChildWhichIsA("ClickDetector")
+    if cd then
+        fireclickdetector(cd)
+        return true
+    end
+    
+    if obj:IsA("BasePart") then
+        firetouchinterest(root, obj, 0)
+        task.wait(0.05)
+        firetouchinterest(root, obj, 1)
+        return true
+    end
+    
+    if obj:IsA("BasePart") then
+        local oldPos = root.CFrame
+        root.CFrame = CFrame.new(obj.Position + Vector3.new(0, 1, 0))
+        task.wait(0.1)
+        root.CFrame = oldPos
+        return true
+    end
+    
+    return false
+end
+
+local function fireEvent(eventName, ...)
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") and v.Name:lower():find(eventName:lower()) then
+            v:FireServer(...)
+            return true
+        end
+    end
+    return false
+end
+
+-- ============================================
+-- AUTO FARM
+-- ============================================
+task.spawn(function()
+    while task.wait(0.3) do
+        if isVerified and farming then
+            pcall(function()
+                local char = Player.Character
+                if not char then return end
+                
+                local root = char.HumanoidRootPart
+                local nearest = nil
+                local minDist = 50
+                
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    local pos = nil
+                    local target = nil
+                    
+                    if obj:IsA("ProximityPrompt") then
+                        target = obj.Parent
+                        pos = target:IsA("BasePart") and target.Position or target:GetPivot().Position
+                    elseif obj:IsA("ClickDetector") then
+                        target = obj.Parent
+                        pos = target:IsA("BasePart") and target.Position or target:GetPivot().Position
+                    elseif obj:IsA("Model") and obj.PrimaryPart and obj.PrimaryPart.Size.Magnitude < 30 then
+                        target = obj
+                        pos = obj.PrimaryPart.Position
+                    elseif obj:IsA("BasePart") and obj.Size.Magnitude < 20 and obj.CanCollide and obj.Transparency < 0.9 then
+                        target = obj
+                        pos = obj.Position
+                    end
+                    
+                    if pos and target then
+                        local dist = (root.Position - pos).Magnitude
+                        if dist < minDist then
+                            minDist = dist
+                            nearest = target
+                        end
+                    end
+                end
+                
+                if nearest then
+                    local pos = nearest:IsA("BasePart") and nearest.Position or nearest:GetPivot().Position
+                    
+                    if (root.Position - pos).Magnitude > 5 then
+                        root.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+                    end
+                    
+                    task.wait(0.1)
+                    activateObject(nearest)
+                    fireEvent("Farm")
+                    fireEvent("Harvest")
+                    fireEvent("Collect")
+                    fireEvent("Plant")
+                    fireEvent("Click")
+                end
+            end)
+        end
+    end
+end)
+
+-- ============================================
+-- AUTO STEAL
+-- ============================================
+task.spawn(function()
+    while task.wait(0.5) do
+        if isVerified and stealing then
+            pcall(function()
+                local char = Player.Character
+                if not char then return end
+                
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Tool") and obj.Parent == Workspace then
+                        local handle = obj:FindFirstChild("Handle")
+                        if handle then
+                            handle.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0)
+                            task.wait(0.05)
+                            char.Humanoid:EquipTool(obj)
+                            print("🥷 Steal: " .. obj.Name)
+                            break
+                        end
+                    end
+                end
+                
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= Player then
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in pairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool.Parent = Player.Backpack
+                                    print("🥷 Steal tu " .. player.Name)
+                                    return
+                                end
+                            end
+                        end
+                        
+                        if player.Character then
+                            for _, tool in pairs(player.Character:GetChildren()) do
+                                if tool:IsA("Tool") and tool.Name ~= "HumanoidRootPart" then
+                                    tool.Parent = Player.Backpack
+                                    print("🥷 Steal tool " .. player.Name)
+                                    return
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ============================================
+-- AUTO WATER
+-- ============================================
+task.spawn(function()
+    while task.wait(3) do
+        if isVerified and watering then
+            pcall(function()
+                local char = Player.Character
+                if not char then return end
+                
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") then
+                        local name = obj.Name:lower()
+                        if name:find("water") or name:find("well") then
+                            char.HumanoidRootPart.CFrame = CFrame.new(obj.Position + Vector3.new(0, 3, 0))
+                            task.wait(0.1)
+                            activateObject(obj)
+                            fireEvent("Water")
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ============================================
+-- AUTO SELL
+-- ============================================
+task.spawn(function()
+    while task.wait(5) do
+        if isVerified and selling then
+            pcall(function()
+                local char = Player.Character
+                if not char then return end
+                
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") or obj:IsA("Model") then
+                        local name = obj.Name:lower()
+                        if name:find("sell") or name:find("shop") or name:find("market") then
+                            local pos = obj:IsA("BasePart") and obj.Position or obj:GetPivot().Position
+                            char.HumanoidRootPart.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+                            task.wait(0.1)
+                            activateObject(obj)
+                            fireEvent("Sell")
+                            fireEvent("Shop")
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ============================================
+-- NÚT ẨN/HIỆN MENU
+-- ============================================
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Parent = gui
+toggleBtn.Size = UDim2.new(0, 40, 0, 40)
+toggleBtn.Position = UDim2.new(1, -50, 0, 10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 220)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Text = "🌿"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextSize = 20
+toggleBtn.ZIndex = 10
+
+local menuVisible = true
+toggleBtn.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    if isVerified then
+        mainFrame.Visible = menuVisible
+    else
+        keyFrame.Visible = menuVisible
+    end
+end)
+
+print("====================================")
+print("🌿 GROW A GARDEN 2 - MOBILE")
+print("👤 DEV_MINH")
+print("🔑 Key: DEV_MINH 2005 FREE")
+print("📱 Delta Mobile")
+print("====================================")
