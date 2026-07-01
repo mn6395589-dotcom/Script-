@@ -1,557 +1,335 @@
--- ============================================
--- DEV_MINH 2005 - KTANANA HUB
--- Có hệ thống Key bảo vệ
--- Delta Mobile 100%
--- ============================================
+-- DEV_MINH 2005 - AUTO MOVE KILL ALL
+local KeySystem = {ValidKey = "DEV_MINH 2005 MVP", PremiumKey = "MVP12345", IsPremium = false}
+function KeySystem:CheckKey(k) if k == self.ValidKey then self.IsPremium = false return true elseif k == self.PremiumKey then self.IsPremium = true return true else return false end end
 
--- ============================================
--- KEY SYSTEM
--- ============================================
-local KeySystem = {}
-KeySystem.ValidKey = "DEV_MINH 2005 DZ" -- Key mặc định
-KeySystem.KeyChecked = false
-
--- Hàm kiểm tra key
-function KeySystem:CheckKey(inputKey)
-    if inputKey == self.ValidKey then
-        self.KeyChecked = true
-        return true
-    else
-        return false
+local function createKeyGUI()
+    local g = Instance.new("ScreenGui", game:GetService("CoreGui"))
+    local f = Instance.new("Frame", g)
+    f.Size = UDim2.new(0,300,0,220) f.Position = UDim2.new(0.5,-150,0.5,-110)
+    f.BackgroundColor3 = Color3.fromRGB(20,20,35)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
+    
+    local border = Instance.new("Frame", f)
+    border.Size = UDim2.new(1,4,1,4) border.Position = UDim2.new(0,-2,0,-2)
+    border.BackgroundColor3 = Color3.fromRGB(255,215,0) border.ZIndex = 0
+    Instance.new("UICorner", border).CornerRadius = UDim.new(0,12)
+    
+    local t = Instance.new("TextLabel", f)
+    t.Size = UDim2.new(1,0,0,30) t.Position = UDim2.new(0,0,0,20)
+    t.BackgroundTransparency = 1 t.Text = "👑 DEV_MINH 2005"
+    t.TextColor3 = Color3.fromRGB(255,200,0) t.TextSize = 24 t.Font = Enum.Font.GothamBold t.ZIndex = 1
+    
+    local st = Instance.new("TextLabel", f)
+    st.Size = UDim2.new(1,0,0,18) st.Position = UDim2.new(0,0,0,50)
+    st.BackgroundTransparency = 1 st.Text = "⚡ AUTO KILL ALL ⚡"
+    st.TextColor3 = Color3.fromRGB(255,150,0) st.TextSize = 13 st.Font = Enum.Font.GothamSemibold st.ZIndex = 1
+    
+    local tb = Instance.new("TextBox", f)
+    tb.Size = UDim2.new(0.75,0,0,35) tb.Position = UDim2.new(0.125,0,0,80)
+    tb.BackgroundColor3 = Color3.fromRGB(30,30,45) tb.TextColor3 = Color3.fromRGB(255,255,255)
+    tb.PlaceholderText = "🔑 Nhập Key..." tb.TextSize = 14 tb.Font = Enum.Font.Gotham tb.ZIndex = 1
+    Instance.new("UICorner", tb).CornerRadius = UDim.new(0,6)
+    Instance.new("UIStroke", tb).Color = Color3.fromRGB(255,180,0)
+    
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(0.5,0,0,35) btn.Position = UDim2.new(0.25,0,0,125)
+    btn.BackgroundColor3 = Color3.fromRGB(255,150,0) btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Text = "🌟 KÍCH HOẠT" btn.TextSize = 15 btn.Font = Enum.Font.GothamBold btn.ZIndex = 1
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+    
+    local s = Instance.new("TextLabel", f)
+    s.Size = UDim2.new(1,0,0,20) s.Position = UDim2.new(0,0,0,170)
+    s.BackgroundTransparency = 1 s.Text = "💎 Nhập key VIP/PRIME"
+    s.TextColor3 = Color3.fromRGB(200,200,200) s.TextSize = 11 s.Font = Enum.Font.Gotham s.ZIndex = 1
+    
+    local function check(k)
+        if KeySystem:CheckKey(k) then
+            s.Text = KeySystem.IsPremium and "👑 PREMIUM!" or "✅ HỢP LỆ!"
+            s.TextColor3 = Color3.fromRGB(0,255,100)
+            task.wait(1) g:Destroy() loadMainScript()
+        else s.Text = "❌ KEY SAI!" s.TextColor3 = Color3.fromRGB(255,50,50) tb.Text = "" end
     end
+    btn.MouseButton1Click:Connect(function() check(tb.Text) end)
+    tb.FocusLost:Connect(function(e) if e then check(tb.Text) end end)
+    task.spawn(function() while g and g.Parent do border.BackgroundColor3 = Color3.fromHSV((tick()*0.3)%1,0.8,1) task.wait(0.05) end end)
 end
 
--- Tạo GUI Key
-local function createKeyGUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "KeySystem"
-    ScreenGui.Parent = game:GetService("CoreGui")
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+function loadMainScript()
+    local plr = game.Players.LocalPlayer
+    local prem = KeySystem.IsPremium
     
-    -- Background mờ
-    local Background = Instance.new("Frame")
-    Background.Name = "Background"
-    Background.Size = UDim2.new(0, 300, 0, 200)
-    Background.Position = UDim2.new(0.5, -150, 0.5, -100)
-    Background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Background.BorderSizePixel = 0
-    Background.Parent = ScreenGui
+    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+    local Window = Rayfield:CreateWindow({
+        Name = prem and "👑 DEV_MINH 2005 PRIME" or "⚔️ DEV_MINH 2005 VIP",
+        LoadingTitle = "DEV_MINH 2005", LoadingSubtitle = "Auto Move Kill All",
+        ConfigurationSaving = {Enabled = false}, KeySystem = false
+    })
     
-    -- Bo góc
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 10)
-    Corner.Parent = Background
+    local autoKill, killRange, moveSpeed = true, prem and 200 or 100, prem and 300 or 150
+    local flying, godModeValue, killAllMode = false, false, false
+    local currentTarget = nil
     
-    -- Tiêu đề
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Position = UDim2.new(0, 0, 0, 10)
-    Title.BackgroundTransparency = 1
-    Title.Text = "🔐 DEV_MINH 2005"
-    Title.TextColor3 = Color3.fromRGB(255, 215, 0)
-    Title.TextSize = 22
-    Title.Font = Enum.Font.SourceSansBold
-    Title.Parent = Background
+    -- Particles Premium
+    if prem then task.spawn(function() while true do task.wait(0.5) pcall(function()
+        local c = plr.Character if c and c:FindFirstChild("HumanoidRootPart") then
+        local p = Instance.new("ParticleEmitter", c.HumanoidRootPart)
+        p.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        p.Rate = 50 p.Lifetime = NumberRange.new(0.5,1) task.wait(0.3) p:Destroy() end end) end end) end
     
-    -- Ô nhập key
-    local TextBox = Instance.new("TextBox")
-    TextBox.Name = "KeyInput"
-    TextBox.Size = UDim2.new(0.8, 0, 0, 40)
-    TextBox.Position = UDim2.new(0.1, 0, 0, 60)
-    TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TextBox.PlaceholderText = "Nhập Key..."
-    TextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    TextBox.TextSize = 16
-    TextBox.Font = Enum.Font.SourceSans
-    TextBox.Parent = Background
+    -- Equip
+    local function equip()
+        local c = plr.Character if not c then return nil end
+        local tool = c:FindFirstChildOfClass("Tool") if tool then return tool end
+        local bp = plr:FindFirstChild("Backpack")
+        if bp then for _,v in bp:GetChildren() do if v:IsA("Tool") then
+            local h = c:FindFirstChild("Humanoid") if h then h:EquipTool(v) task.wait(0.2) return v end end end end
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then for _,v in workspace:GetDescendants() do if v:IsA("Tool") and v:FindFirstChild("Handle") then
+            if (v.Handle.Position-hrp.Position).Magnitude<50 then hrp.CFrame=v.Handle.CFrame+Vector3.new(0,3,0)
+            task.wait(0.2) firetouchinterest(hrp,v.Handle,0) firetouchinterest(hrp,v.Handle,1)
+            task.wait(0.3) if c:FindFirstChildOfClass("Tool") then return c:FindFirstChildOfClass("Tool") end end end end end
+        return nil
+    end
     
-    local TextCorner = Instance.new("UICorner")
-    TextCorner.CornerRadius = UDim.new(0, 5)
-    TextCorner.Parent = TextBox
+    -- Get all enemies sorted by distance
+    local function getAllEnemies(r)
+        local c = plr.Character if not c then return {} end
+        local hrp = c:FindFirstChild("HumanoidRootPart") if not hrp then return {} end
+        local list = {}
+        for _,t in game.Players:GetPlayers() do if t~=plr and t.Character then
+            local h = t.Character:FindFirstChild("Humanoid")
+            local tr = t.Character:FindFirstChild("HumanoidRootPart")
+            if h and h.Health>0 and tr then
+                local dist = (tr.Position-hrp.Position).Magnitude
+                if dist < (r or 500) then table.insert(list,{target=t,dist=dist,root=tr}) end
+            end end end
+        table.sort(list,function(a,b) return a.dist<b.dist end)
+        return list
+    end
     
-    -- Nút xác nhận
-    local SubmitButton = Instance.new("TextButton")
-    SubmitButton.Name = "Submit"
-    SubmitButton.Size = UDim2.new(0.5, 0, 0, 40)
-    SubmitButton.Position = UDim2.new(0.25, 0, 0, 120)
-    SubmitButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-    SubmitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SubmitButton.Text = "✅ XÁC NHẬN"
-    SubmitButton.TextSize = 18
-    SubmitButton.Font = Enum.Font.SourceSansBold
-    SubmitButton.Parent = Background
-    
-    local ButtonCorner = Instance.new("UICorner")
-    ButtonCorner.CornerRadius = UDim.new(0, 5)
-    ButtonCorner.Parent = SubmitButton
-    
-    -- Status text
-    local Status = Instance.new("TextLabel")
-    Status.Name = "Status"
-    Status.Size = UDim2.new(1, 0, 0, 20)
-    Status.Position = UDim2.new(0, 0, 0, 170)
-    Status.BackgroundTransparency = 1
-    Status.Text = ""
-    Status.TextColor3 = Color3.fromRGB(255, 0, 0)
-    Status.TextSize = 14
-    Status.Font = Enum.Font.SourceSans
-    Status.Parent = Background
-    
-    -- Xử lý nút
-    SubmitButton.MouseButton1Click:Connect(function()
-        local inputKey = TextBox.Text
-        if KeySystem:CheckKey(inputKey) then
-            Status.Text = "✅ Key đúng! Đang load script..."
-            Status.TextColor3 = Color3.fromRGB(0, 255, 0)
-            task.wait(1)
-            ScreenGui:Destroy()
-            loadMainScript()
+    -- Move to target smoothly
+    local function moveToTarget(root)
+        local c = plr.Character if not c then return end
+        local hrp = c:FindFirstChild("HumanoidRootPart") if not hrp or not root then return end
+        local hum = c:FindFirstChild("Humanoid") if not hum then return end
+        
+        -- Set speed
+        hum.WalkSpeed = moveSpeed
+        
+        -- Move towards target
+        local dir = (root.Position - hrp.Position).unit
+        local targetPos = root.Position - dir * 3
+        
+        -- Teleport closer if too far
+        local dist = (hrp.Position - root.Position).Magnitude
+        if dist > 50 then
+            hrp.CFrame = CFrame.new(targetPos + Vector3.new(0,2,0))
         else
-            Status.Text = "❌ Key sai! Vui lòng thử lại!"
-            Status.TextColor3 = Color3.fromRGB(255, 0, 0)
-            TextBox.Text = ""
+            -- Walk smoothly
+            hum:MoveTo(targetPos)
         end
-    end)
+        
+        -- Look at target
+        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(root.Position.X, hrp.Position.Y, root.Position.Z))
+        return dist
+    end
     
-    -- Cũng cho phép nhấn Enter
-    TextBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local inputKey = TextBox.Text
-            if KeySystem:CheckKey(inputKey) then
-                Status.Text = "✅ Key đúng! Đang load script..."
-                Status.TextColor3 = Color3.fromRGB(0, 255, 0)
-                task.wait(1)
-                ScreenGui:Destroy()
-                loadMainScript()
-            else
-                Status.Text = "❌ Key sai! Vui lòng thử lại!"
-                Status.TextColor3 = Color3.fromRGB(255, 0, 0)
-                TextBox.Text = ""
+    -- Attack single target
+    local function atk(tg)
+        local c = plr.Character if not c or not tg or not tg.Character then return false end
+        local tool = equip() if not tool then return false end
+        local tr = tg.Character:FindFirstChild("HumanoidRootPart")
+        local mr = c:FindFirstChild("HumanoidRootPart")
+        if not tr or not mr then return false end
+        
+        -- AOE attack for premium
+        if prem then for _,t in game.Players:GetPlayers() do if t~=plr and t.Character then
+            local troot = t.Character:FindFirstChild("HumanoidRootPart")
+            if troot and (troot.Position-mr.Position).Magnitude<20 then
+                task.spawn(function() pcall(function() tool:Activate() end) end) end end end end
+        
+        -- Position behind target
+        mr.CFrame = tr.CFrame * CFrame.new(0,2,-2)
+        task.wait(0.03)
+        pcall(function() tool:Activate() end)
+        
+        -- Fire remotes
+        task.spawn(function() pcall(function()
+            for _,r in game.ReplicatedStorage:GetDescendants() do
+                if r:IsA("RemoteEvent") then r:FireServer(tg.Character) r:FireServer(tool)
+                elseif r:IsA("RemoteFunction") then r:InvokeServer(tg.Character) r:InvokeServer(tool) end
+            end end) end)
+        return true
+    end
+    
+    -- Kill All function (sequential)
+    local function killAllSequential()
+        task.spawn(function()
+            local enemies = getAllEnemies(500)
+            for _,enemy in pairs(enemies) do
+                if not killAllMode then break end
+                local tg = enemy.target
+                if tg and tg.Character then
+                    local tr = tg.Character:FindFirstChild("HumanoidRootPart")
+                    if tr then
+                        -- Move to target
+                        moveToTarget(tr)
+                        task.wait(0.2)
+                        -- Attack multiple times
+                        for i = 1, 8 do
+                            if not killAllMode then break end
+                            atk(tg)
+                            task.wait(prem and 0.1 or 0.2)
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+            -- Loop back if still enabled
+            if killAllMode then
+                task.wait(0.5)
+                killAllSequential()
+            end
+        end)
+    end
+    
+    -- Main Auto Kill Loop (keeps moving to nearest)
+    task.spawn(function()
+        task.wait(1)
+        equip()
+        while task.wait(prem and 0.1 or 0.2) do
+            if not autoKill then continue end
+            local c = plr.Character
+            if not c then task.wait(1) continue end
+            local hum = c:FindFirstChild("Humanoid")
+            if hum and hum.Health <= 0 then task.wait(2) continue end
+            
+            -- Find nearest enemy
+            local enemies = getAllEnemies(killRange)
+            if #enemies > 0 then
+                local nearest = enemies[1]
+                local tr = nearest.root
+                if tr then
+                    -- Move to target
+                    moveToTarget(tr)
+                    task.wait(0.15)
+                    -- Attack
+                    atk(nearest.target)
+                end
             end
         end
     end)
-end
-
--- ============================================
--- MAIN SCRIPT
--- ============================================
-function loadMainScript()
-    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
     
-    local Window = Rayfield:CreateWindow({
-       Name = "⚔️ DEV_MINH 2005",
-       LoadingTitle = "DEV_MINH 2005 Hub",
-       LoadingSubtitle = "Ktanana Auto Kill",
-       ConfigurationSaving = {
-          Enabled = false
-       },
-       KeySystem = false
+    plr.CharacterAdded:Connect(function()
+        if autoKill then task.wait(1) equip() end
+        if killAllMode then task.wait(1) killAllSequential() end
+    end)
+    
+    -- GUI
+    local CTab = Window:CreateTab("⚔️ Auto Kill", "crosshair")
+    
+    CTab:CreateToggle({
+        Name = "⚡ AUTO KILL (Tự di chuyển)",
+        CurrentValue = true, Flag = "ak",
+        Callback = function(v) autoKill = v if v then equip() end end
     })
     
-    -- ============================================
-    -- TAB: AUTO KILL
-    -- ============================================
-    local CombatTab = Window:CreateTab("⚔️ Auto Kill", "crosshair")
-    
-    -- Hàm tìm và cầm kiếm
-    local function equipSword()
-       local plr = game.Players.LocalPlayer
-       local char = plr.Character
-       if not char then return nil end
-       
-       local backpack = plr:FindFirstChild("Backpack")
-       local tool = char:FindFirstChildOfClass("Tool")
-       
-       if tool then return tool end
-       
-       if backpack then
-          for _, item in pairs(backpack:GetChildren()) do
-             if item:IsA("Tool") then
-                item.Parent = char
-                task.wait(0.2)
-                return item
-             end
-          end
-       end
-       
-       for _, obj in pairs(workspace:GetChildren()) do
-          if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
-             local hrp = char:FindFirstChild("HumanoidRootPart")
-             if hrp then
-                local dist = (obj.Handle.Position - hrp.Position).Magnitude
-                if dist < 20 then
-                   hrp.CFrame = obj.Handle.CFrame
-                   task.wait(0.3)
-                   firetouchinterest(char, obj, 0)
-                   task.wait(0.2)
-                   return obj
-                end
-             end
-          end
-       end
-       
-       return nil
-    end
-    
-    -- Hàm tìm địch
-    local function getNearestEnemy(range)
-       local plr = game.Players.LocalPlayer
-       local char = plr.Character
-       if not char then return nil end
-       
-       local nearest = nil
-       local nearDist = range or 50
-       local hrp = char:FindFirstChild("HumanoidRootPart")
-       if not hrp then return nil end
-       
-       for _, target in pairs(game.Players:GetPlayers()) do
-          if target ~= plr and target.Character then
-             local tHum = target.Character:FindFirstChild("Humanoid")
-             local tRoot = target.Character:FindFirstChild("HumanoidRootPart")
-             if tHum and tHum.Health > 0 and tRoot then
-                local dist = (tRoot.Position - hrp.Position).Magnitude
-                if dist < nearDist then
-                   nearDist = dist
-                   nearest = target
-                end
-             end
-          end
-       end
-       
-       return nearest
-    end
-    
-    -- Hàm tấn công
-    local function attackTarget(target)
-       local plr = game.Players.LocalPlayer
-       local char = plr.Character
-       if not char or not target or not target.Character then return end
-       
-       local tool = equipSword()
-       if not tool then return end
-       
-       local tRoot = target.Character:FindFirstChild("HumanoidRootPart")
-       local mRoot = char:FindFirstChild("HumanoidRootPart")
-       if not tRoot or not mRoot then return end
-       
-       mRoot.CFrame = CFrame.new(mRoot.Position, Vector3.new(tRoot.Position.X, mRoot.Position.Y, tRoot.Position.Z))
-       
-       pcall(function()
-          tool:Activate()
-       end)
-       
-       task.spawn(function()
-          pcall(function()
-             local replicated = game:GetService("ReplicatedStorage")
-             
-             local remotes = {
-                replicated:FindFirstChild("Remotes"),
-                replicated:FindFirstChild("RemoteEvent"),
-                replicated:FindFirstChild("RemoteFunction"),
-                replicated:FindFirstChild("Events"),
-                replicated:FindFirstChild("DamageEvent"),
-                replicated:FindFirstChild("HitEvent"),
-                replicated:FindFirstChild("AttackEvent"),
-                replicated:FindFirstChild("SwingEvent"),
-                replicated:FindFirstChild("CombatEvent")
-             }
-             
-             for _, remote in pairs(remotes) do
-                if remote then
-                   if remote:IsA("RemoteEvent") then
-                      remote:FireServer(target.Character)
-                   elseif remote:IsA("RemoteFunction") then
-                      remote:InvokeServer(target.Character)
-                   end
-                   
-                   if remote:IsA("RemoteEvent") then
-                      remote:FireServer(tool, target.Character)
-                   elseif remote:IsA("RemoteFunction") then
-                      remote:InvokeServer(tool, target.Character)
-                   end
-                end
-             end
-             
-             if tool:FindFirstChild("RemoteEvent") then
-                tool.RemoteEvent:FireServer(target.Character)
-             end
-             if tool:FindFirstChild("Activate") then
-                tool.Activate:FireServer()
-             end
-          end)
-       end)
-    end
-    
-    -- Auto Kill
-    local autoKill = false
-    local killRange = 30
-    
-    CombatTab:CreateToggle({
-       Name = "⚔️ AUTO KILL",
-       CurrentValue = false,
-       Flag = "autokill",
-       Callback = function(Value)
-          autoKill = Value
-          if Value then
-             task.spawn(function()
-                while autoKill do
-                   task.wait()
-                   
-                   local enemy = getNearestEnemy(killRange)
-                   if enemy then
-                      local plr = game.Players.LocalPlayer
-                      local char = plr.Character
-                      if char then
-                         local mRoot = char:FindFirstChild("HumanoidRootPart")
-                         local tRoot = enemy.Character:FindFirstChild("HumanoidRootPart")
-                         if mRoot and tRoot then
-                            mRoot.CFrame = tRoot.CFrame + Vector3.new(0, 2, -3)
-                            task.wait(0.1)
-                            
-                            for i = 1, 5 do
-                               if not autoKill then break end
-                               attackTarget(enemy)
-                               task.wait(0.2)
-                            end
-                         end
-                      end
-                   end
-                   
-                   task.wait(0.5)
-                end
-             end)
-          end
-       end
+    CTab:CreateSlider({
+        Name = "📏 Phạm Vi Quét",
+        Range = {10, prem and 500 or 200}, Increment = 10,
+        Suffix = " studs", CurrentValue = killRange, Flag = "range",
+        Callback = function(v) killRange = v end
     })
     
-    CombatTab:CreateSlider({
-       Name = "📏 Phạm vi",
-       Range = {10, 100},
-       Increment = 5,
-       Suffix = "studs",
-       CurrentValue = 30,
-       Flag = "range",
-       Callback = function(Value)
-          killRange = Value
-       end
+    CTab:CreateSlider({
+        Name = "🏃 Tốc Độ Di Chuyển",
+        Range = {50, prem and 500 or 300}, Increment = 10,
+        Suffix = " speed", CurrentValue = moveSpeed, Flag = "movespd",
+        Callback = function(v) moveSpeed = v end
     })
     
-    CombatTab:CreateButton({
-       Name = "🗡 Auto Cầm Kiếm",
-       Callback = function()
-          local tool = equipSword()
-          if tool then
-             Rayfield:Notify({
-                Title = "✅ DEV_MINH 2005",
-                Content = "Đã cầm: " .. tool.Name,
-                Duration = 3,
-                Image = "sword"
-             })
-          end
-       end
+    CTab:CreateButton({
+        Name = "🗡 Cầm Kiếm Ngay",
+        Callback = function() equip() end
     })
     
-    -- ============================================
-    -- TAB: PLAYER
-    -- ============================================
-    local PlayerTab = Window:CreateTab("👤 Nhân Vật", "user")
-    
-    PlayerTab:CreateSlider({
-       Name = "🏃 Tốc Độ",
-       Range = {16, 200},
-       Increment = 1,
-       Suffix = "Speed",
-       CurrentValue = 16,
-       Flag = "speed",
-       Callback = function(Value)
-          local char = game.Players.LocalPlayer.Character
-          if char then
-             local hum = char:FindFirstChild("Humanoid")
-             if hum then hum.WalkSpeed = Value end
-          end
-       end
+    -- Kill All Toggle
+    CTab:CreateToggle({
+        Name = "💀 KILL ALL (Tự động di chuyển giết tất cả)",
+        CurrentValue = false, Flag = "killall",
+        Callback = function(v)
+            killAllMode = v
+            if v then
+                autoKill = false -- Turn off single target mode
+                equip()
+                task.wait(0.5)
+                killAllSequential()
+                Rayfield:Notify({Title="💀 KILL ALL",Content="Đang di chuyển giết tất cả!",Duration=3,Image="skull"})
+            end
+        end
     })
     
-    PlayerTab:CreateSlider({
-       Name = "🦘 Sức Nhảy",
-       Range = {50, 500},
-       Increment = 1,
-       Suffix = "Jump",
-       CurrentValue = 50,
-       Flag = "jump",
-       Callback = function(Value)
-          local char = game.Players.LocalPlayer.Character
-          if char then
-             local hum = char:FindFirstChild("Humanoid")
-             if hum then hum.JumpPower = Value end
-          end
-       end
-    })
+    local PTab = Window:CreateTab("👤 Nhân Vật", "user")
+    PTab:CreateSlider({Name="🏃 Tốc Độ Mặc Định",Range={16,prem and 500 or 200},Increment=1,CurrentValue=16,Flag="spd",
+        Callback=function(v) if plr.Character then plr.Character:FindFirstChild("Humanoid").WalkSpeed=v end end})
+    PTab:CreateSlider({Name="🦘 Sức Nhảy",Range={50,prem and 1000 or 500},Increment=1,CurrentValue=50,Flag="jmp",
+        Callback=function(v) if plr.Character then plr.Character:FindFirstChild("Humanoid").JumpPower=v end end})
     
-    -- Fly
-    local flying = false
-    PlayerTab:CreateToggle({
-       Name = "✈ Bay (Fly)",
-       CurrentValue = false,
-       Flag = "fly",
-       Callback = function(Value)
-          flying = Value
-          local plr = game.Players.LocalPlayer
-          local char = plr.Character or plr.CharacterAdded:Wait()
-          local hum = char:WaitForChild("Humanoid")
-          local hrp = char:WaitForChild("HumanoidRootPart")
-          
-          if Value then
-             local bg = Instance.new("BodyGyro")
-             bg.P = 9e4
-             bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-             bg.CFrame = hrp.CFrame
-             bg.Parent = hrp
-             
-             local bv = Instance.new("BodyVelocity")
-             bv.Velocity = Vector3.new(0, 0, 0)
-             bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-             bv.Parent = hrp
-             
-             hum.PlatformStand = true
-             
-             task.spawn(function()
-                while flying do
-                   task.wait()
-                   bg.CFrame = workspace.CurrentCamera.CFrame
-                   local moveDir = Vector3.new()
-                   local flySpeed = 50
-                   local uis = game:GetService("UserInputService")
-                   
-                   if uis:IsKeyDown(Enum.KeyCode.W) then moveDir += workspace.CurrentCamera.CFrame.LookVector end
-                   if uis:IsKeyDown(Enum.KeyCode.S) then moveDir -= workspace.CurrentCamera.CFrame.LookVector end
-                   if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= workspace.CurrentCamera.CFrame.RightVector end
-                   if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += workspace.CurrentCamera.CFrame.RightVector end
-                   if uis:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
-                   if uis:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
-                   
-                   bv.Velocity = moveDir * flySpeed
-                end
-                bg:Destroy()
-                bv:Destroy()
-                hum.PlatformStand = false
-             end)
-          end
-       end
-    })
+    PTab:CreateToggle({Name="✈ Bay (Fly) "..(prem and"[SIÊU TỐC]"or""),CurrentValue=false,Flag="fly",
+        Callback=function(v)
+            flying=v local c=plr.Character or plr.CharacterAdded:Wait() local h=c:WaitForChild("Humanoid") local hr=c:WaitForChild("HumanoidRootPart")
+            if v then local bg=Instance.new("BodyGyro",hr) bg.P=9e4 bg.MaxTorque=Vector3.new(9e9,9e9,9e9) bg.CFrame=hr.CFrame
+            local bv=Instance.new("BodyVelocity",hr) bv.MaxForce=Vector3.new(9e9,9e9,9e9) h.PlatformStand=true
+            task.spawn(function() while flying do task.wait() bg.CFrame=workspace.CurrentCamera.CFrame local m=Vector3.new() local u=game.UserInputService
+            local speed=prem and 150 or 50
+            if u:IsKeyDown(Enum.KeyCode.W) then m+=workspace.CurrentCamera.CFrame.LookVector end
+            if u:IsKeyDown(Enum.KeyCode.S) then m-=workspace.CurrentCamera.CFrame.LookVector end
+            if u:IsKeyDown(Enum.KeyCode.A) then m-=workspace.CurrentCamera.CFrame.RightVector end
+            if u:IsKeyDown(Enum.KeyCode.D) then m+=workspace.CurrentCamera.CFrame.RightVector end
+            if u:IsKeyDown(Enum.KeyCode.Space) then m+=Vector3.new(0,1,0) end
+            if u:IsKeyDown(Enum.KeyCode.LeftShift) then m-=Vector3.new(0,1,0) end
+            bv.Velocity=m*speed end bg:Destroy() bv:Destroy() h.PlatformStand=false end) end end})
     
-    -- God Mode
-    PlayerTab:CreateToggle({
-       Name = "🛡 God Mode",
-       CurrentValue = false,
-       Flag = "godmode",
-       Callback = function(Value)
-          if Value then
-             task.spawn(function()
-                while Value do
-                   task.wait(0.1)
-                   local char = game.Players.LocalPlayer.Character
-                   if char then
-                      local hum = char:FindFirstChild("Humanoid")
-                      if hum and hum.Health < hum.MaxHealth then
-                         hum.Health = hum.MaxHealth
-                      end
-                   end
-                end
-             end)
-          end
-       end
-    })
+    PTab:CreateToggle({Name="🛡 God Mode",CurrentValue=false,Flag="gd",
+        Callback=function(v) godModeValue=v if v then task.spawn(function() while godModeValue do
+            task.wait(prem and 0.05 or 0.1) local c=plr.Character
+            if c then local h=c:FindFirstChild("Humanoid") if h and h.Health<h.MaxHealth then h.Health=h.MaxHealth end end end end) end end})
     
-    -- ============================================
-    -- TAB: ESP
-    -- ============================================
-    local ESPTab = Window:CreateTab("👁 ESP", "eye")
+    if prem then PTab:CreateToggle({Name="👻 Noclip",CurrentValue=false,Flag="nc",
+        Callback=function(v) task.spawn(function() while v do task.wait(0.1)
+            local c=plr.Character if c then for _,p in c:GetDescendants() do if p:IsA("BasePart") then p.CanCollide=false end end end end end) end}) end
     
-    local espList = {}
-    ESPTab:CreateToggle({
-       Name = "👁 Bật ESP",
-       CurrentValue = false,
-       Flag = "esp",
-       Callback = function(Value)
-          local plr = game.Players.LocalPlayer
-          if Value then
-             for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= plr and p.Character then
-                   local hl = Instance.new("Highlight")
-                   hl.FillColor = Color3.fromRGB(255, 0, 0)
-                   hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                   hl.FillTransparency = 0.5
-                   hl.Parent = p.Character
-                   table.insert(espList, {player = p, highlight = hl})
-                end
-             end
-             
-             game.Players.PlayerAdded:Connect(function(p)
-                p.CharacterAdded:Connect(function(char)
-                   task.wait(0.5)
-                   local hl = Instance.new("Highlight")
-                   hl.FillColor = Color3.fromRGB(255, 0, 0)
-                   hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                   hl.FillTransparency = 0.5
-                   hl.Parent = char
-                   table.insert(espList, {player = p, highlight = hl})
-                end)
-             end)
-             
-             game.Players.PlayerRemoving:Connect(function(p)
-                for i, obj in pairs(espList) do
-                   if obj.player == p then
-                      if obj.highlight then obj.highlight:Destroy() end
-                      table.remove(espList, i)
-                      break
-                   end
-                end
-             end)
-          else
-             for _, obj in pairs(espList) do
-                if obj.highlight then obj.highlight:Destroy() end
-             end
-             espList = {}
-          end
-       end
-    })
+    local ETab = Window:CreateTab("👁 ESP", "eye")
+    local esp={}
+    ETab:CreateToggle({Name="👁 ESP "..(prem and"[CHAMS]"or""),CurrentValue=false,Flag="esp",
+        Callback=function(v)
+            if v then for _,p2 in game.Players:GetPlayers() do if p2~=plr and p2.Character then
+                local hl=Instance.new("Highlight",p2.Character)
+                hl.FillColor=prem and Color3.fromRGB(0,255,255) or Color3.fromRGB(255,0,0)
+                hl.OutlineColor=Color3.fromRGB(255,255,255) hl.FillTransparency=prem and 0.3 or 0.5
+                table.insert(esp,{p=p2,h=hl}) end end
+            game.Players.PlayerAdded:Connect(function(p2) p2.CharacterAdded:Connect(function(c) task.wait(0.5)
+                local hl=Instance.new("Highlight",c) hl.FillColor=prem and Color3.fromRGB(0,255,255) or Color3.fromRGB(255,0,0)
+                hl.OutlineColor=Color3.fromRGB(255,255,255) hl.FillTransparency=prem and 0.3 or 0.5
+                table.insert(esp,{p=p2,h=hl}) end) end)
+            game.Players.PlayerRemoving:Connect(function(p2) for i,o in esp do if o.p==p2 then o.h:Destroy() table.remove(esp,i) break end end end)
+            else for _,o in esp do o.h:Destroy() end esp={} end end})
     
-    -- ============================================
-    -- TAB: KHÁC
-    -- ============================================
-    local MiscTab = Window:CreateTab("🔧 Khác", "settings")
+    local MTab = Window:CreateTab("🔧 Khác", "settings")
+    MTab:CreateButton({Name="🔧 Infinite Yield",Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end})
+    MTab:CreateButton({Name="🔄 Rejoin",Callback=function() game:GetService("TeleportService"):Teleport(game.PlaceId,plr) end})
+    MTab:CreateButton({Name="🌐 Server Hop",Callback=function()
+        local s=game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+        if s and s.data then for _,v in s.data do if v.playing<v.maxPlayers and v.id~=game.JobId then
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId,v.id) break end end end
+    end})
     
-    MiscTab:CreateButton({
-       Name = "🔧 Infinite Yield",
-       Callback = function()
-          loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-       end
-    })
-    
-    MiscTab:CreateButton({
-       Name = "🔄 Rejoin",
-       Callback = function()
-          game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
-       end
-    })
-    
-    -- ============================================
-    -- THÔNG BÁO
-    -- ============================================
     Rayfield:Notify({
-       Title = "⚔️ DEV_MINH 2005",
-       Content = "Hub đã load thành công!",
-       Duration = 5,
-       Image = "check"
+        Title = prem and "👑 PRIME" or "⚔️ VIP",
+        Content = "Auto Move Kill All đã sẵn sàng!",
+        Duration = 5, Image = "check"
     })
-    
-    print("✅ DEV_MINH 2005 HUB - Loaded!")
+    print("✅ DEV_MINH 2005 - Auto Move Kill All Loaded!")
 end
 
--- ============================================
--- KHỞI ĐỘNG
--- ============================================
 createKeyGUI()
