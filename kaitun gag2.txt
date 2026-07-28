@@ -1,0 +1,687 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LP = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local TimeCycleData = nil
+local loadSuccess, err = pcall(function()
+    local SharedModules = ReplicatedStorage.SharedModules
+    TimeCycleData = require(SharedModules.TimeCycleData)
+end)
+
+if not loadSuccess then
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "DEV_MINH 2005"
+    gui.Parent = game.CoreGui
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 400, 0, 100)
+    label.Position = UDim2.new(0.5, -200, 0.5, -50)
+    label.BackgroundTransparency = 0.5
+    label.BackgroundColor3 = Color3.new(0,0,0)
+    label.Text = "Lỗi: Không thể load TimeCycleData\n" .. tostring(err)
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Parent = gui
+    return
+end
+
+local phases = {}
+for name, data in pairs(TimeCycleData.Data) do
+    table.insert(phases, {
+        Name = name,
+        Weathers = data.Weathers,
+        Duration = data.Lasts,
+        Order = data.StartOrder
+    })
+end
+table.sort(phases, function(a, b) return a.Order < b.Order end)
+
+local totalDuration = 0
+for _, p in ipairs(phases) do totalDuration = totalDuration + p.Duration end
+
+local function getWeather(phase, cycle, phaseIdx)
+    local seed = cycle * 1000 + phaseIdx
+    local weatherList = {}
+    local totalChance = 0
+    for wName, wData in pairs(phase.Weathers) do
+        local chance = wData.Chance or 0
+        if chance > 0 then
+            table.insert(weatherList, {name = wName, chance = chance})
+            totalChance = totalChance + chance
+        end
+    end
+    if totalChance == 0 then return nil end
+    local rng = Random.new(seed)
+    local roll = rng:NextNumber() * totalChance
+    local cum = 0
+    for _, w in ipairs(weatherList) do
+        cum = cum + w.chance
+        if roll <= cum then return w.name end
+    end
+    return weatherList[1].name
+end
+
+local function getCurrentPhaseInfo()
+    local currentPhaseName = workspace:GetAttribute("ActivePhase")
+    local currentPhaseIdx, currentPhaseData, remainingInPhase
+    if currentPhaseName then
+        for i, p in ipairs(phases) do
+            if p.Name == currentPhaseName then
+                currentPhaseIdx = i
+                currentPhaseData = p
+                break
+            end
+        end
+    end
+    if not currentPhaseData then
+        local now = os.time()
+        local timeInCycle = now % totalDuration
+        local accum = 0
+        for i, p in ipairs(phases) do
+            if timeInCycle < accum + p.Duration then
+                currentPhaseIdx = i
+                currentPhaseData = p
+                remainingInPhase = (accum + p.Duration) - timeInCycle
+                break
+            end
+            accum = accum + p.Duration
+        end
+    else
+        local phaseDuration = workspace:GetAttribute("PhaseDuration") or currentPhaseData.Duration
+        local serverTime = workspace:GetServerTimeNow()
+        if serverTime == 0 then serverTime = os.time() end
+        remainingInPhase = workspace:GetAttribute("PhaseRemaining")
+        if not remainingInPhase then
+            local phaseStart = workspace:GetAttribute("PhaseStartTime")
+            if phaseStart then
+                remainingInPhase = phaseDuration - (serverTime - phaseStart)
+            else
+                remainingInPhase = phaseDuration - (serverTime % phaseDuration)
+            end
+        end
+        if remainingInPhase < 0 then remainingInPhase = 0 end
+    end
+    local currentCycle = math.floor(os.time() / totalDuration)
+    return currentPhaseIdx, currentPhaseData, remainingInPhase, currentCycle
+end
+
+local function findAllWeathers()
+    local phaseIdx, phaseData, remainingPhase, cycle = getCurrentPhaseInfo()
+    local timeAccum = remainingPhase
+    local results = {}
+    local seen = {}
+    local firstPhase = true
+    for step = 1, 200 do
+        local phase = phases[phaseIdx]
+        local weather = getWeather(phase, cycle, phaseIdx)
+        if weather and not seen[weather] then
+            seen[weather] = true
+            local waitTime = firstPhase and remainingPhase or timeAccum
+            if waitTime < 0 then waitTime = 0 end
+            table.insert(results, {Weather = weather, WaitTime = waitTime, Phase = phase.Name})
+        end
+        if firstPhase then firstPhase = false else timeAccum = timeAccum + phase.Duration end
+        phaseIdx = phaseIdx + 1
+        if phaseIdx > #phases then phaseIdx = 1; cycle = cycle + 1 end
+    end
+    table.sort(results, function(a, b) return a.WaitTime < b.WaitTime end)
+    return results
+end
+
+local function formatTime(secs)
+    local h = math.floor(secs / 3600)
+    local m = math.floor((secs % 3600) / 60)
+    local s = math.floor(secs % 60)
+    if h > 0 then return string.format("%dh %02dm %02ds", h, m, s)
+    elseif m > 0 then return string.format("%dm %02ds", m, s)
+    else return string.format("%ds", s) end
+end
+
+-- Tạo GUI như cũ
+local gui = Instance.new("ScreenGui")
+gui.Name = "TrieuHub"
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = game.CoreGui
+
+local blur = Instance.new("BlurEffect")
+blur.Name = "TrieuBlur"
+blur.Size = 52
+blur.Parent = game.Lighting
+
+local function stroke(obj, color, thick, trans)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = thick or 1
+    s.Transparency = trans or 0
+    s.Parent = obj
+    return s
+end
+
+local function make(txt, pos, color, sizeW, sizeH, textSize)
+    local t = Instance.new("TextLabel")
+    t.Parent = gui
+    t.AnchorPoint = Vector2.new(.5, .5)
+    t.Position = pos
+    t.Size = UDim2.new(0, sizeW or 340, 0, sizeH or 18)
+    t.BackgroundTransparency = 1
+    t.Font = Enum.Font.FredokaOne
+    t.TextScaled = true
+    t.TextSize = textSize or 13
+    t.RichText = true
+    t.Text = txt
+    t.TextColor3 = color
+    stroke(t, Color3.fromRGB(0,0,0), 0.8, 0.45)
+    return t
+end
+
+local title = make("T-rex Hub", UDim2.new(.5, 0, .16, 0), Color3.fromRGB(195,165,255), 600, 70, 46)
+local shecklesLabel = make("Sheckles : ...", UDim2.new(.5, 0, .28, 0), Color3.fromRGB(255,225,130), 340, 24, 16)
+local status = make("Auto update 1s", UDim2.new(.5, 0, .88, 0), Color3.fromRGB(170,120,255), 340, 20, 13)
+local galaxy = Instance.new("UIGradient")
+galaxy.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(120,180,255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200,130,255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,150,220))
+}
+galaxy.Rotation = 20
+galaxy.Parent = status
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Parent = gui
+scrollFrame.AnchorPoint = Vector2.new(0.5, 0)
+scrollFrame.Position = UDim2.new(0.5, 0, 0.36, 0)
+scrollFrame.Size = UDim2.new(0, 420, 0, 220)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Parent = scrollFrame
+listLayout.Padding = UDim.new(0, 6)
+
+local weatherLines = {}
+local allTexts = {title, shecklesLabel, status}
+
+local function rebuildWeatherList()
+    for _, line in pairs(weatherLines) do line:Destroy() end
+    weatherLines = {}
+    local results = findAllWeathers()
+    for i, res in ipairs(results) do
+        local line = make(
+            res.Weather .. " : " .. formatTime(res.WaitTime),
+            UDim2.new(0.5, 0, 0, 0),
+            Color3.fromRGB(230,230,230),
+            360, 22, 14
+        )
+        line.Parent = scrollFrame
+        line.AnchorPoint = Vector2.new(0.5, 0.5)
+        line.Position = UDim2.new(0.5, 0, 0, i * 28)
+        weatherLines[res.Weather] = line
+        table.insert(allTexts, line)
+    end
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #results * 28 + 10)
+end
+
+rebuildWeatherList()
+
+local toggleFrame = Instance.new("Frame")
+toggleFrame.Parent = gui
+toggleFrame.AnchorPoint = Vector2.new(1,0)
+toggleFrame.Position = UDim2.new(1,-20,0,20)
+toggleFrame.Size = UDim2.new(0,42,0,42)
+toggleFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+toggleFrame.BackgroundTransparency = 0.18
+toggleFrame.BorderSizePixel = 0
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1,0)
+corner.Parent = toggleFrame
+local toggleStroke = stroke(toggleFrame, Color3.fromRGB(140,220,255), 1.2, 0.3)
+
+local btn = Instance.new("TextButton")
+btn.Parent = toggleFrame
+btn.Size = UDim2.new(1,0,1,0)
+btn.BackgroundTransparency = 1
+btn.Text = ""
+
+local icon = Instance.new("TextLabel")
+icon.Parent = toggleFrame
+icon.AnchorPoint = Vector2.new(.5,.5)
+icon.Position = UDim2.new(.5,0,.5,0)
+icon.Size = UDim2.new(0.65,0,0.65,0)
+icon.BackgroundTransparency = 1
+icon.Font = Enum.Font.GothamBold
+icon.TextScaled = true
+icon.Text = "HIDE"
+icon.TextColor3 = Color3.fromRGB(245,245,245)
+
+local visible = true
+local function toggle()
+    visible = not visible
+    TweenService:Create(blur, TweenInfo.new(.35), {Size = visible and 52 or 0}):Play()
+    for _, v in ipairs(allTexts) do
+        TweenService:Create(v, TweenInfo.new(.35), {TextTransparency = visible and 0 or 1}):Play()
+        local s = v:FindFirstChildOfClass("UIStroke")
+        if s then TweenService:Create(s, TweenInfo.new(.35), {Transparency = visible and 0.45 or 1}):Play() end
+    end
+    scrollFrame.Visible = visible
+    icon.Text = visible and "HIDE" or "SHOW"
+end
+btn.MouseButton1Click:Connect(toggle)
+
+btn.MouseEnter:Connect(function()
+    TweenService:Create(toggleFrame, TweenInfo.new(.2), {Size = UDim2.new(0,48,0,48)}):Play()
+    TweenService:Create(toggleStroke, TweenInfo.new(.2), {Thickness = 2, Color = Color3.fromRGB(190,255,255)}):Play()
+end)
+btn.MouseLeave:Connect(function()
+    TweenService:Create(toggleFrame, TweenInfo.new(.2), {Size = UDim2.new(0,42,0,42)}):Play()
+    TweenService:Create(toggleStroke, TweenInfo.new(.2), {Thickness = 1.2, Color = Color3.fromRGB(140,220,255)}):Play()
+end)
+
+local function updateUI()
+    pcall(function()
+        local leaderstats = LP:FindFirstChild("leaderstats")
+        if leaderstats then
+            local sheckles = leaderstats:FindFirstChild("Sheckles")
+            shecklesLabel.Text = sheckles and ("Sheckles : " .. tostring(sheckles.Value)) or "Sheckles : 0"
+        else
+            shecklesLabel.Text = "Sheckles : 0"
+        end
+        local results = findAllWeathers()
+        for i, res in ipairs(results) do
+            local line = weatherLines[res.Weather]
+            if line then
+                line.Text = res.Weather .. " : " .. formatTime(res.WaitTime)
+            end
+        end
+    end)
+end
+
+updateUI()
+task.spawn(function()
+    while task.wait(1) do
+        updateUI()
+    end
+end)
+getgenv().harvest = true
+getgenv().sell = true
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
+local Networking = require(RS:WaitForChild("SharedModules"):WaitForChild("Networking"))
+local CollectionService = game:GetService("CollectionService")
+local TweenService = game:GetService("TweenService")
+local SeedData = require(RS:WaitForChild("SharedModules"):WaitForChild("SeedData"))
+local ExpansionPrices = require(RS:WaitForChild("SharedData"):WaitForChild("ExpansionPrices"))
+local PlayerStateClient = require(RS:WaitForChild("ClientModules"):WaitForChild("PlayerStateClient"))
+
+local hide = LP:FindFirstChild("HideCollectProximityPrompts")
+if hide then hide.Value = false end
+
+local TweenSpeed = 300
+
+local function tweento(targetPos)
+    local char = LP.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local part = Instance.new("Part")
+    part.Name = "trieu"
+    part.Size = Vector3.new(0.1, 0.1, 0.1)
+    part.Transparency = 1
+    part.Anchored = true
+    part.CanCollide = false
+    part.CFrame = hrp.CFrame
+    part.Parent = char
+    local alignPos = Instance.new("AlignPosition")
+    alignPos.Attachment0 = part:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", part)
+    alignPos.Attachment1 = hrp:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", hrp)
+    alignPos.RigidityEnabled = true
+    alignPos.Responsiveness = 200
+    alignPos.Parent = part
+    local distance = (part.Position - targetPos).Magnitude
+    local duration = distance / TweenSpeed
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local goal = {CFrame = CFrame.new(targetPos)}
+    local tween = TweenService:Create(part, tweenInfo, goal)
+    local connection
+    local cleanup = function()
+        if connection then connection:Disconnect(); connection = nil end
+        if tween then tween:Cancel(); tween = nil end
+        part:Destroy()
+    end
+    connection = tween.Completed:Connect(cleanup)
+    tween:Play()
+    tween.Completed:Wait()
+    hrp.CFrame = CFrame.new(targetPos)
+    cleanup()
+end
+
+local function getSeedLocations()
+    local seeds = {}
+    local map = workspace:FindFirstChild("Map")
+    if map then
+        local serverLocs = map:FindFirstChild("SeedPackSpawnServerLocations")
+        if serverLocs then
+            for _, part in ipairs(serverLocs:GetChildren()) do
+                if part:IsA("BasePart") and (part:GetAttribute("SeedPack") or part:GetAttribute("RainbowSeed") or part:GetAttribute("GoldSeed")) then
+                    local pos = part.Position + Vector3.new(0, part.Size.Y / 2 + 3, 0)
+                    table.insert(seeds, {model = part, pos = pos})
+                end
+            end
+        end
+    end
+    return seeds
+end
+
+game:GetService("ProximityPromptService").PromptShown:Connect(function(p)
+    if p and p:IsA("ProximityPrompt") then p.HoldDuration = 0 end
+end)
+
+local function collectSeedAt(model)
+    local part = model
+    if part:IsA("Model") then part = part.PrimaryPart or part:FindFirstChildWhichIsA("BasePart") end
+    if part then
+        local packType = part:GetAttribute("RainbowSeed") and "Rainbow" or part:GetAttribute("GoldSeed") and "Gold" or part:GetAttribute("SeedPack")
+        if packType then
+            pcall(function() Networking.SeedPackSpawn.Claimed:Fire(packType, part.Name) end)
+            return true
+        end
+    end
+    local prompt = model:FindFirstChildWhichIsA("ProximityPrompt")
+    if not prompt then
+        for _, child in ipairs(model:GetDescendants()) do
+            if child:IsA("ProximityPrompt") then prompt = child; break end
+        end
+    end
+    if prompt then
+        local oldDist = prompt.MaxActivationDistance
+        prompt.MaxActivationDistance = math.huge
+        prompt.Enabled = true
+        prompt:InputHoldBegin()
+        task.wait(0.05)
+        prompt:InputHoldEnd()
+        prompt.MaxActivationDistance = oldDist
+        return true
+    end
+    return false
+end
+
+local function autoPickSeedTween()
+    while true do
+        if getgenv().autopickseed then
+            local seeds = getSeedLocations()
+            if #seeds > 0 then
+                table.sort(seeds, function(a, b)
+                    local char = LP.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local rootPos = char.HumanoidRootPart.Position
+                        return (a.pos - rootPos).Magnitude < (b.pos - rootPos).Magnitude
+                    end
+                    return false
+                end)
+                local target = seeds[1]
+                tweento(target.pos)
+                task.wait(0.3)
+                collectSeedAt(target.model)
+            end
+        end
+        task.wait(0.5)
+    end
+end
+
+local function returnToHomePlot()
+    local plotId = LP:GetAttribute("PlotId")
+    if not plotId then
+        tweento(Vector3.new(0, 5, 0))
+        return
+    end
+    local plot = workspace.Gardens:FindFirstChild("Plot" .. tostring(plotId))
+    if not plot then
+        tweento(Vector3.new(0, 5, 0))
+        return
+    end
+    local visual = plot:FindFirstChild("Visual")
+    if visual then
+        local gardenZonePart = visual:FindFirstChild("GardenZonePart")
+        if gardenZonePart and gardenZonePart:IsA("BasePart") then
+            local char = LP.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local zonePos = gardenZonePart.Position
+                local zoneSize = gardenZonePart.Size
+                local maxDist = math.max(zoneSize.X, zoneSize.Z) / 2 + 5
+                if (hrp.Position - zonePos).Magnitude <= maxDist then return end
+                tweento(zonePos)
+                return
+            end
+        end
+    end
+    tweento(plot:GetPivot().Position)
+end
+
+local seedEvents = {Bloodmoon = true, Goldmoon = true, ["Rainbow Moon"] = true}
+
+local function isSeedEventActive()
+    for name, _ in pairs(seedEvents) do
+        local obj = RS:FindFirstChild(name)
+        if obj and obj:IsA("BoolValue") and obj.Value then return true end
+    end
+    return false
+end
+
+task.spawn(function()
+    while true do
+        if isSeedEventActive() then
+            getgenv().harvest = false
+            getgenv().autopickseed = true
+        else
+            getgenv().harvest = true
+            getgenv().autopickseed = false
+        end
+        task.wait(1)
+    end
+end)
+
+local function countMutations(mutationStr)
+    if not mutationStr or mutationStr == "" then return 0 end
+    local parts = {}
+    for part in string.gmatch(mutationStr, "[^%+,]+") do
+        part = string.match(part, "^%s*(.-)%s*$")
+        if part ~= "" then table.insert(parts, part) end
+    end
+    return #parts
+end
+
+local function harvestLoop()
+    while true do
+        if getgenv().harvest then
+            if isSeedEventActive() then
+                task.wait(0.5)
+                continue
+            end
+            returnToHomePlot()
+            local prompts = CollectionService:GetTagged("HarvestPrompt")
+            local sorted = {}
+            for _, prompt in ipairs(prompts) do
+                if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                    local fruitModel = nil
+                    local cur = prompt.Parent
+                    while cur do
+                        if cur:IsA("Model") and cur:GetAttribute("FruitId") then
+                            fruitModel = cur; break
+                        end
+                        cur = cur.Parent
+                    end
+                    if fruitModel then
+                        local mutationStr = fruitModel:GetAttribute("Mutation")
+                        local cnt = countMutations(mutationStr)
+                        if cnt ~= 1 then
+                            table.insert(sorted, {prompt = prompt, fruitModel = fruitModel, mutationCount = cnt})
+                        end
+                    end
+                end
+            end
+            table.sort(sorted, function(a, b) return a.mutationCount > b.mutationCount end)
+            for _, data in ipairs(sorted) do
+                if not getgenv().harvest then break end
+                local prompt = data.prompt
+                local fruitModel = data.fruitModel
+                local plantId = fruitModel:GetAttribute("PlantId")
+                local fruitId = fruitModel:GetAttribute("FruitId") or ""
+                if plantId and prompt:IsDescendantOf(workspace) and prompt.Enabled and fruitModel:IsDescendantOf(workspace) then
+                    local oldDist = prompt.MaxActivationDistance
+                    prompt.MaxActivationDistance = math.huge
+                    local holdTime = math.max(prompt.HoldDuration, 0.05)
+                    prompt:InputHoldBegin()
+                    task.wait(holdTime + 0.03)
+                    prompt:InputHoldEnd()
+                    Networking.Garden.CollectFruit:Fire(plantId, fruitId)
+                    prompt.MaxActivationDistance = oldDist
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
+
+local function sellLoop()
+    while true do
+        if getgenv().sell then pcall(function() Networking.NPCS.SellAll:Fire() end) end
+        task.wait(0.5)
+    end
+end
+
+local function seedLoop()
+    while true do
+        if getgenv().autoseed then
+            local seedPrompts = {}
+            for _, tag in ipairs({"SeedPrompt", "CollectSeed", "SeedPackPrompt"}) do
+                for _, p in ipairs(CollectionService:GetTagged(tag)) do
+                    if p:IsA("ProximityPrompt") and p.Enabled then table.insert(seedPrompts, p) end
+                end
+            end
+            if #seedPrompts == 0 then
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") and obj.Enabled and (obj.Name:lower():find("seed") or obj.Name:lower():find("pickup")) then
+                        table.insert(seedPrompts, obj)
+                    end
+                end
+            end
+            for _, prompt in ipairs(seedPrompts) do
+                local oldDist = prompt.MaxActivationDistance
+                prompt.MaxActivationDistance = math.huge
+                local holdTime = math.max(prompt.HoldDuration, 0.05)
+                prompt:InputHoldBegin()
+                task.wait(holdTime + 0.03)
+                prompt:InputHoldEnd()
+                prompt.MaxActivationDistance = oldDist
+                task.wait(0.01)
+            end
+        end
+        task.wait(0.2)
+    end
+end
+
+local seedNamesList = {}
+for _, data in ipairs(SeedData) do if data.SeedName then table.insert(seedNamesList, data.SeedName) end end
+table.sort(seedNamesList)
+
+local function autoBuyLoop()
+    while true do
+        if getgenv().autobuy then
+            if type(getgenv().autobuyseed) == "table" and next(getgenv().autobuyseed) then
+                for seedName, enabled in pairs(getgenv().autobuyseed) do
+                    if enabled then pcall(function() Networking.SeedShop.PurchaseSeed:Fire(seedName) end) end
+                end
+            end
+        end
+        task.wait(1)
+    end
+end
+
+local function plantSeedAtPosition(position)
+    local backpack = LP:FindFirstChildOfClass("Backpack")
+    if not backpack then return false end
+    local seedTool = nil
+    for _, tool in backpack:GetChildren() do
+        if tool:IsA("Tool") and tool:GetAttribute("SeedTool") then seedTool = tool; break end
+    end
+    if not seedTool then return false end
+    local seedName = seedTool:GetAttribute("SeedTool")
+    Networking.Plant.PlantSeed:Fire(position, seedName, seedTool)
+    return true
+end
+
+local function getPlantAreaGround(position)
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Include
+    rayParams.FilterDescendantsInstances = CollectionService:GetTagged("PlantArea")
+    local result = workspace:Raycast(position + Vector3.new(0, 10, 0), Vector3.new(0, -20, 0), rayParams)
+    if result then return result.Position end
+    return nil
+end
+
+local function autoPlantLoop()
+    while true do
+        if getgenv().autoplant then
+            local plot = workspace.Gardens:FindFirstChild("Plot" .. LP:GetAttribute("PlotId"))
+            if plot then
+                local targetPos
+                if getgenv().plantmode == "Under Player" then
+                    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local groundPos = getPlantAreaGround(hrp.Position)
+                        if groundPos then targetPos = groundPos end
+                    end
+                else
+                    local plantAreas = CollectionService:GetTagged("PlantArea")
+                    local plotPlantAreas = {}
+                    for _, area in ipairs(plantAreas) do
+                        if area:IsDescendantOf(plot) then table.insert(plotPlantAreas, area) end
+                    end
+                    if #plotPlantAreas > 0 then
+                        local area = plotPlantAreas[math.random(1, #plotPlantAreas)]
+                        local pos = area.Position
+                        local size = area.Size
+                        local randX = pos.X + (math.random() - 0.5) * size.X
+                        local randZ = pos.Z + (math.random() - 0.5) * size.Z
+                        targetPos = Vector3.new(randX, pos.Y + size.Y/2 + 0.1, randZ)
+                    end
+                end
+                if targetPos then plantSeedAtPosition(targetPos) end
+            end
+        end
+        task.wait(0.3)
+    end
+end
+
+task.spawn(function()
+    local LocalReplica = PlayerStateClient:WaitForLocalReplica(30)
+    while true do
+        if getgenv().autoexpand then
+            local sheckles = LP.leaderstats and LP.leaderstats:FindFirstChild("Sheckles")
+            local money = sheckles and sheckles.Value or 0
+            local owned = LocalReplica and LocalReplica.Data.OwnedExpansions or 1
+            local nextPrice = ExpansionPrices[owned + 1]
+            if nextPrice then
+                if money >= nextPrice.Price then
+                    Networking.Actions.ExpandGarden:Fire()
+                end
+                if money < nextPrice.Price * getgenv().expandThreshold then
+                    getgenv().autobuy = false
+                else
+                    getgenv().autobuy = true
+                end
+            end
+        end
+        task.wait(2)
+    end
+end)
+
+task.spawn(harvestLoop)
+task.spawn(sellLoop)
+task.spawn(seedLoop)
+task.spawn(autoPickSeedTween)
+task.spawn(autoPlantLoop)
+task.spawn(autoBuyLoop)
